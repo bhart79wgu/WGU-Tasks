@@ -15,17 +15,14 @@ WHERE payment_date BETWEEN '2007-02-15' and '2007-02-21'
 GROUP BY staff.staff_id
 ORDER BY SUM(payment.amount) DESC
 
-CREATE FUNCTION name_first_l(num int)
-RETURNS VARCHAR
+CREATE OR REPLACE FUNCTION name_first_l(num integer)
+RETURNS VARCHAR(40)
 LANGUAGE plpgsql
 AS
 $$
-DECLARE name varchar;
+DECLARE name varchar(40);
 BEGIN
-	SELECT concat(staff.first_name, ' ', SUBSTRING(staff.last_name, 1, 1)) 
-	INTO name;
-	FROM staff
-	WHERE staff.id=num
+	SELECT concat(staff.first_name, ' ', SUBSTRING(staff.last_name, 1, 1)) INTO name FROM staff WHERE staff.staff_id=num;
 	RETURN name;
 END;
 $$
