@@ -34,21 +34,39 @@ SELECT name_first_l(1);
 
 
 
+--Create transformation Function
+CREATE OR REPLACE FUNCTION name_first_l(num integer)
+RETURNS VARCHAR(40)
+LANGUAGE plpgsql
+AS
+$$
+DECLARE name varchar(40);
+BEGIN
+	SELECT concat(staff.first_name, ' ', SUBSTRING(staff.last_name, 1, 1)) INTO name FROM staff WHERE staff.staff_id=num;
+	RETURN name;
+END;
+$$
+
+--Test Transformation Function
+SELECT name_first_l(1);
+
+--Create Detailed Table and insert Data
 CREATE TABLE Detailed (
 	staff_id bigint,
 	first_name varchar(40),
 	last_name varchar(40),
 	amount float);
-	
-CREATE TABLE Summary (
-	staff_id bigint,
-	fname_l varchar(40),
-	amount float)
 
 INSERT INTO Detailed
 SELECT staff.staff_id, staff.first_name, staff.last_name, payment.amount
 FROM staff
 INNER JOIN payment ON staff.staff_id = payment.staff_id
+
+--Create Summary Table and insert Data
+CREATE TABLE Summary (
+	staff_id bigint,
+	fname_l varchar(40),
+	amount float)
 
 INSERT INTO Summary
 SELECT staff.staff_id, concat(staff.first_name, ' ', SUBSTRING(staff.last_name, 1, 1)) as name, SUM(payment.amount)
@@ -58,9 +76,13 @@ WHERE payment_date BETWEEN '2007-02-15' and '2007-02-21'
 GROUP BY staff.staff_id
 ORDER BY SUM(payment.amount) DESC
 
+--Test Detailed Table
 select * FROM Detailed
+
+--Test Summary Table
 select * FROM Summary
 
+--Create Trigger 
 CREATE TRIGGER Detailed_updated
 	AFTER INSERT
 	ON Detailed
@@ -85,3 +107,31 @@ ORDER BY SUM(payment.amount) DESC;
 RETURN NEW;
 END;
 $$;
+
+--Refresh Both Tables Procedure
+CREATE OR REPLACE PROCEDURE refresh_both_tables()
+LANGUAGE plpgsql
+AS $$
+BEGIN
+DROP TABLE IF EXISTS Detailed;
+DROP TABLE IF EXISTS Summary;
+CREATE TABLE Detailed AS
+SELECT staff.staff_id, staff.first_name, staff.last_name, payment.amount
+FROM staff
+INNER JOIN payment ON staff.staff_id = payment.staff_id;
+
+CREATE TABLE Summary AS 
+SELECT staff.staff_id, concat(staff.first_name, ' ', SUBSTRING(staff.last_name, 1, 1)) as name, SUM(payment.amount)
+FROM staff
+INNER JOIN payment ON staff.staff_id = payment.staff_id
+WHERE payment_date BETWEEN '2007-02-15' and '2007-02-21'
+GROUP BY staff.staff_id
+ORDER BY SUM(payment.amount) DESC;
+
+RETURN;
+END;
+$$;
+
+CALL refresh_both_tables();
+
+SELECT * FROM Detailed
