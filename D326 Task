@@ -15,6 +15,8 @@ WHERE payment_date BETWEEN '2007-02-15' and '2007-02-21'
 GROUP BY staff.staff_id
 ORDER BY SUM(payment.amount) DESC
 
+Function 
+
 CREATE OR REPLACE FUNCTION name_first_l(num integer)
 RETURNS VARCHAR(40)
 LANGUAGE plpgsql
@@ -28,3 +30,33 @@ END;
 $$
 
 SELECT name_first_l(1);
+
+
+
+
+CREATE TABLE Detailed (
+	staff_id bigint,
+	first_name varchar(40),
+	last_name varchar(40),
+	amount float);
+	
+CREATE TABLE Summary (
+	staff_id bigint,
+	fname_l varchar(40),
+	amount float)
+
+INSERT INTO Detailed
+SELECT staff.staff_id, staff.first_name, staff.last_name, payment.amount
+FROM staff
+INNER JOIN payment ON staff.staff_id = payment.staff_id
+
+INSERT INTO Summary
+SELECT staff.staff_id, concat(staff.first_name, ' ', SUBSTRING(staff.last_name, 1, 1)) as name, SUM(payment.amount)
+FROM staff
+INNER JOIN payment ON staff.staff_id = payment.staff_id
+WHERE payment_date BETWEEN '2007-02-15' and '2007-02-21'
+GROUP BY staff.staff_id
+ORDER BY SUM(payment.amount) DESC
+
+select * FROM Detailed
+select * FROM Summary
